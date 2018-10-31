@@ -6,13 +6,13 @@ const restify = require('restify');
 
 // Import required bot services.
 // See https://aka.ms/bot-services to learn more about the different parts of a bot.
-const { BotFrameworkAdapter, MemoryStorage, ConversationState } = require('botbuilder');
+const { BotFrameworkAdapter, MemoryStorage, UserState, ConversationState } = require('botbuilder');
 
 // Import required bot configuration.
 const { BotConfiguration } = require('botframework-config');
 
 // This bot's main dialog.
-const { MyBot } = require('./bot');
+const { DjBot } = require('./bot');
 
 // Read botFilePath and botFileSecret from .env file
 // Note: Ensure you have a .env file and include botFilePath and botFileSecret.
@@ -80,9 +80,10 @@ const memoryStorage = new MemoryStorage();
 
 // Create conversation state with in-memory storage provider.
 const conversationState = new ConversationState(memoryStorage);
+const userState = new UserState(memoryStorage)
 
 // Create the main dialog.
-const myBot = new MyBot(conversationState);
+const djBot = new DjBot(conversationState, userState);
 
 // Catch-all for errors.
 adapter.onTurnError = async (context, error) => {
@@ -101,7 +102,7 @@ adapter.onTurnError = async (context, error) => {
 server.post('/api/messages', (req, res) => {
     adapter.processActivity(req, res, async (context) => {
         // Route to main dialog.
-        await myBot.onTurn(context);
+        await djBot.onTurn(context);
     });
 });
 
