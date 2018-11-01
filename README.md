@@ -4,6 +4,8 @@ This simple nodeJS botBuilder was built upon the Yeoman bot generator. I pulled 
 
 If you are not my future boss (:wink:) you can go to the [Main Bot Framework Page](https://dev.botframework.com) or the [GitHub repo](https://github.com/Microsoft/BotBuilder/) for more info.
 
+Upon cloning this repo, run `npm i && npm start`, then open `dj_bot.bot` in the [Microsoft botBuilder Emulator](https://github.com/Microsoft/BotFramework-Emulator).
+
 There are definitely several ~bugs~ TODOs that I would prefer to get done, but I promised that I would submit this within 48hrs (the 0.1 tag has less bugs but is also more basic). In order of importance, these are the top 5 things I would change/add/learn to improve my Music-slinging bot:
 1. Advance to the next WaterFallDialog without requiring user input. This is partially an issue with design (I'm sure there's a more optimal way to divide up my intended conversation into dialog "chunks"), but mostly due to having not yet learned the ins-and-outs of conversation flow management. I believe my target to fixing this lies either in `bot.onTurn()` when it comes to checking `turnContext.responded`. OR it could be fixed a la [this article](https://docs.microsoft.com/en-us/azure/bot-service/nodejs/bot-builder-nodejs-dialog-waterfall?view=azure-bot-service-3.0#advance-the-waterfall).
 2. Branching and Looping of the Dialog Tree for better control over corner/unexpected use cases. 
