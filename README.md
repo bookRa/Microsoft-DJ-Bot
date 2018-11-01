@@ -1,69 +1,22 @@
 # dj_bot
-Demonstrate the core capabilties of the Microsoft Bot Framework
 
-This bot has been created using [Microsoft Bot Framework][10], it shows how to create a simple echo bot with state. The bot maintains a simple counter that increases with each message from the user. This bot example uses [`restify`][1].
+This simple nodeJS botBuilder was built upon the Yeoman bot generator. I pulled out most of the boilerplate comments in `bot.js` so I can help myself (and demonstrate that I can ) understand the framework. 
 
-# To run the bot
-- Install modules and start the bot
-    ```bash
-    npm i & npm start
-    ```
-    Alternatively you can also use nodemon via
-    ```bash
-    npm i & npm run watch
-    ```
+If you are not my future boss (:wink:) you can go to the [Main Bot Framework Page](https://dev.botframework.com) or the [GitHub repo](https://github.com/Microsoft/BotBuilder/) for more info.
 
-# Testing the bot using Bot Framework Emulator
-[Microsoft Bot Framework Emulator][2] is a desktop application that allows bot developers to test and debug their bots on localhost or running remotely through a tunnel.
+There are definitely several ~bugs~ TODOs that I would prefer to get done, but I promised that I would submit this within 48hrs (the 0.1 tag has less bugs but is also more basic). In order of importance, these are the top 5 things I would change/add/learn to improve my Music-slinging bot:
+1. Advance to the next WaterFallDialog without requiring user input. This is partially an issue with design (I'm sure there's a more optimal way to divide up my intended conversation into dialog "chunks"), but mostly due to having not yet learned the ins-and-outs of conversation flow management. I believe my target to fixing this lies either in `bot.onTurn()` when it comes to checking `turnContext.responded`. OR it could be fixed a la [this article](https://docs.microsoft.com/en-us/azure/bot-service/nodejs/bot-builder-nodejs-dialog-waterfall?view=azure-bot-service-3.0#advance-the-waterfall).
+2. Branching and Looping of the Dialog Tree for better control over corner/unexpected use cases. 
+3. Integrate with LUIS so I can utilize utterances, and enter/exit dialogs based on utterances.
+4. Host on Azure, to observe the bot in multiple channels, as well as experiment with different adapters and different persistant storages.
+5. Look into better UI such as adaptive cards.
 
-- Install the Bot Framework emulator from [here][3]
+# writing pieces
+I have accrued some (semi-)techical writing online to help people learn/troubleshoot problems in development. Here are two examples of my communication (can supply more upon request):
+1. [My Medium Blog Articles](https://medium.com/@omar.abdelbadie1)
+2. [My YouTube Python Tutorials](https://www.youtube.com/channel/UCVR7Wz3INGwnyP0L5uuye7Q?view_as=subscriber)
 
-## Connect to bot using Bot Framework Emulator **V4**
-- Launch Bot Framework Emulator
-- File -> Open Bot Configuration
-- Select `dj_bot.bot` file
-
-# Bot state
-A key to good bot design is to track the context of a conversation, so that your bot remembers things like the answers to previous questions. Depending on what your bot is used for, you may even need to keep track of conversation state or store user related information for longer than the lifetime of one given conversation.
-
-In this example, the bot's state is used to track number of messages.
-
- A bot's state is information it remembers in order to respond appropriately to incoming messages. The Bot Builder SDK provides classes for [storing and retrieving state data][4] as an object associated with a user or a conversation.
-
-    - Conversation properties help your bot keep track of the current conversation the bot is having with the user. If your bot needs to complete a sequence of steps or switch between conversation topics, you can use conversation properties to manage steps in a sequence or track the current topic. Since conversation properties reflect the state of the current conversation, you typically clear them at the end of a session, when the bot receives an end of conversation activity.
-
-    - User properties can be used for many purposes, such as determining where the user's prior conversation left off or simply greeting a returning user by name. If you store a user's preferences, you can use that information to customize the conversation the next time you chat. For example, you might alert the user to a news article about a topic that interests her, or alert a user when an appointment becomes available. You should clear them if the bot receives a delete user data activity.
-
-# Deploy this bot to Azure
-You can use the [MSBot][5] Bot Builder CLI tool to clone and configure the services this sample depends on.
-
-To install all Bot Builder tools -
-
-Ensure you have [Node.js](https://nodejs.org/) version 8.5 or higher
-
-```bash
-npm i -g msbot chatdown ludown qnamaker luis-apis botdispatch luisgen
-```
-
-To clone this bot, run
-```
-msbot clone services -f deploymentScripts/msbotClone -n myChatBot -l <Azure-location> --subscriptionId <Azure-subscription-id>
-```
-
-# Further reading
-- [Azure Bot Service Introduction][6]
-- [Bot State][7]
-- [Write directly to storage][8]
-- [Managing conversation and user state][9]
-
-
-[1]: https://www.npmjs.com/package/restify
-[2]: https://github.com/microsoft/botframework-emulator
-[3]: https://aka.ms/botframework-emulator
-[4]: https://docs.microsoft.com/en-us/azure/bot-service/bot-builder-howto-v4-state?view=azure-bot-service-4.0&tabs=js
-[5]: https://github.com/microsoft/botbuilder-tools
-[6]: https://docs.microsoft.com/en-us/azure/bot-service/bot-service-overview-introduction?view=azure-bot-service-4.0
-[7]: https://docs.microsoft.com/en-us/azure/bot-service/bot-builder-storage-concept?view=azure-bot-service-4.0
-[8]: https://docs.microsoft.com/en-us/azure/bot-service/bot-builder-howto-v4-storage?view=azure-bot-service-4.0&tabs=jsechoproperty%2Ccsetagoverwrite%2Ccsetag
-[9]: https://docs.microsoft.com/en-us/azure/bot-service/bot-builder-howto-v4-state?view=azure-bot-service-4.0&tabs=js
-[10] https://dev.botframework.com
+<hr>
+Any other questions? Feel free to reach out:
+omar.abdelbadie1@gmail.com
+(425) 246-2060
