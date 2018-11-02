@@ -3,12 +3,9 @@
 
 const { ActivityTypes } = require('botbuilder');
 const { ChoicePrompt, DialogSet, NumberPrompt, TextPrompt, WaterfallDialog } = require('botbuilder-dialogs');
-const axios = require('axios')
 
-/* I'm using a 7 day free trial (circa Halloween 2018) so this should expire
- by 11/7 (alt key2: "58e992c7cc0e43cab864573d0bf7d038")
- */
-const BING_KEY = 'c9f4ac8a66d74c31a228b19b33292625'
+// returns an array of relavent videos
+const { bingSearch } = require('./bingAPI')
 
 // dialog state
 const DIALOG_STATE_PROP = 'dialogState';
@@ -145,6 +142,7 @@ class DjBot {
         break
     }
     await this.userProfile.set(step.context, user)
+    console.log("Why would this fire twice???")
     return await step.prompt(ARTIST_PROMPT, `So who is your favorite ${user.favGenre} artist?`)
   }
   async captureArtist(step) {
@@ -166,8 +164,7 @@ class DjBot {
     // console.log("LOOKIT MUSICQ atm: ", musicQ)
     if (!musicQ) { // haven't fetched the video yet
       step.context.sendActivity(`I'm fetching some ${user.favGenre} videos you may enjoy`)
-      musicQ = await this.bingSearch(user.favGenre, user.favArtist)
-      // console.log("OUR MUSICQ RETURNED...IT IS:", musicQ.length)
+      musicQ = await bingSearch(user.favGenre, user.favArtist)
       user.musicQ = musicQ
       // await this.userProfile.set(step.context, user)
     }
@@ -201,7 +198,7 @@ class DjBot {
   async wrapUpSet(step) {
     // console.log("WRAP UP STEPRESULT", step.result)
     if (step.result == "no") {
-      await step.context.sendActivity("Now if you'll excuse me, I need to go spin up some turntables. If you need more music just hollar")
+      await step.context.sendActivity("Now if you'll excuse me, I need to go spin up some turntables. If you need more music just holler")
       return await step.endDialog();
     } else {
       return await step.beginDialog(SERVE_SONGS)
@@ -213,28 +210,6 @@ class DjBot {
     let userName = user.name ? user.name : "Stranger"
     await step.context.sendActivity(`Not now ${userName}, I'm busy spinning C-_-`)
     return await step.endDialog();
-  }
-
-
-  async bingSearch(genre, artist) {
-    let host = 'https://api.cognitive.microsoft.com';
-    let path = '/bing/v7.0/videos/search?q=';
-    let term = `${genre} ${artist} best music video`
-
-    return axios({
-      baseURL: host,
-      url: path + "?q=" + encodeURIComponent(term),
-      headers: { 'Ocp-Apim-Subscription-Key': BING_KEY }
-
-    }).then(resp => {
-      let myArr = resp.data.value.map(vid => vid.contentUrl)
-      return myArr.slice(0, 1)
-    })
-      .catch(error => {
-        console.log("Error: ", error)
-        return (["...oops...never mind :("])
-
-      })
   }
 
   async onTurn(turnContext) {
@@ -251,12 +226,13 @@ class DjBot {
         if (!user.name) await dc.beginDialog(INTRO)
         else if (!user.favArtist) await dc.beginDialog(SONG_REQUEST)
         else if (!user.musicQ) await dc.beginDialog(SERVE_SONGS)
-        else{
+        else {
           // console.log("were at the endgame")
-          await dc.beginDialog(OUTRO)} //Why won't the OUTRO dialog start?? #confusion
-        } else {
-          // console.log("TURNCONTEXT HAS RESPONDED")
           await dc.beginDialog(OUTRO)
+        } //Why won't the OUTRO dialog start?? #confusion
+      } else {
+        // console.log("TURNCONTEXT HAS RESPONDED")
+        await dc.beginDialog(OUTRO)
       }
     } else {
       const description = "I was created by Omar to serve you music. Talk to me I talk back (but not using LUIS just yet)"
