@@ -8,6 +8,16 @@
             "appId": "",
             "appPassword": "",
             "id": "1"
+        },
+        {
+            "type": "luis",
+            "name": "DjBot",
+            "appId": "8d169785-49ad-4633-b5c3-243f9bc832eb",
+            "version": "0.1",
+            "authoringKey": "12f0f75bc653471fb30fcace6aa625c5",
+            "subscriptionKey": "12f0f75bc653471fb30fcace6aa625c5",
+            "region": "westus",
+            "id": "121"
         }
     ],
     "padlock": "",

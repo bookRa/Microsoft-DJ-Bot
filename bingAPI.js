@@ -20,7 +20,10 @@ const bingSearch = async (genre, artist) => {
   
       }).then(resp => {
         let myArr = resp.data.value.map(vid => vid.contentUrl)
-        return myArr.slice(0, 1)
+        console.log(myArr)
+        let rand = myArr[Math.floor(Math.random() * myArr.length)];
+        return rand
+        // return myArr.slice(0, 1)
       })
         .catch(error => {
           console.log("Error: ", error)

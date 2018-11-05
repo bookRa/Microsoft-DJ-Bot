@@ -2,6 +2,8 @@ const { ComponentDialog, WaterfallDialog, TextPrompt } = require('botbuilder-dia
 
 const { UserProfile } = require('./userProfile')
 
+const { bingSearch } = require('../bingAPI')
+
 // Dialog ID
 const DJ_DIALOG = 'djDialog'
 
@@ -31,7 +33,8 @@ class PlaySet extends ComponentDialog {
             this.initializeStateStep.bind(this),
             this.promptForNameStep.bind(this),
             this.promptForGenreStep.bind(this),
-            this.promptForArtistStep.bind(this)
+            this.promptForArtistStep.bind(this),
+            this.displaySummaryStep.bind(this)
         ]));
 
         // Add text prompts for name, genre, artist
@@ -94,14 +97,32 @@ class PlaySet extends ComponentDialog {
             await this.userProfileAccessor.set(step.context, userProfile);
         }
         if (!userProfile.artist) {
-            return await step.prompt(ARTIST_PROMPT, `NICE... Sound's like you have good taste in music So tell me, whose your favorite ${userProfile.genre}`);
+            return await step.prompt(ARTIST_PROMPT, `Cool, I like your taste in music. Whose your favorite ${userProfile.genre} artist`);
         } else {
             return await step.next();
         }
     }
-
-
+    async displaySummaryStep(step) {
+        const userProfile = await this.userProfileAccessor.get(step.context);
+        if(step.result){
+            console.log("NOW WE'RE IN DISPLAY SUMMARY")
+            userProfile.artist = step.result
+            await this.userProfileAccessor.set(step.context, userProfile)
+        }
+        return await this.greetUser(step)
+    }
+    // Greets user and does a music video
+    async greetUser(step) {
+        const userProfile = await this.userProfileAccessor.get(step.context);
+        // Display to the user their profile information and end dialog
+        await step.context.sendActivity(`Check it out ${ userProfile.name }... I'm searching for ${userProfile.genre} music by ${ userProfile.artist } right now`);
+        const vidString = await bingSearch(userProfile.genre, userProfile.artist)
+        await step.context.sendActivity(`How do you like this...${vidString}`)
+        await step.context.sendActivity(`If you'd like another video just say "next"`)
+        await step.context.sendActivity(`You can always say 'My name is <your name>' to reintroduce yourself to me. Or tell me your favorite genre and artist`);
+        return await step.endDialog();
+    }
 
 }
 
-exports.PlaySet = PlaySet;
+exports.PlaylistDialog = PlaySet;
