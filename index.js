@@ -83,7 +83,7 @@ const conversationState = new ConversationState(memoryStorage);
 const userState = new UserState(memoryStorage)
 
 // Create the main dialog.
-const djBot = new DjBot(conversationState, userState);
+const djBot = new DjBot(conversationState, userState, botConfig);
 
 // Catch-all for errors.
 adapter.onTurnError = async (context, error) => {

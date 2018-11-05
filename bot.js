@@ -2,37 +2,63 @@
 // Licensed under the MIT License.
 
 const { ActivityTypes } = require('botbuilder');
-const { ChoicePrompt, DialogSet, NumberPrompt, TextPrompt, WaterfallDialog } = require('botbuilder-dialogs');
+const { LuisRecognizer } = require('botbuilder-ai');
+const { ChoicePrompt, DialogSet, NumberPrompt, TextPrompt, WaterfallDialog, DialogTurnStatus } = require('botbuilder-dialogs');
+
+// Some modularized items
+const { UserProfile } = require('./dialogs/userProfile')
+const { PlaylistDialog } = require('./dialogs/playlist')
 
 // returns an array of relavent videos
 const { bingSearch } = require('./bingAPI')
 
 // dialog state
 const DIALOG_STATE_PROP = 'dialogState';
-// convo state
-const TOPIC_STATE = 'topic'
+const USER_PROFILE_PROP = 'userProfileProperty';
+
+// LUIS service type entry as defined in the .bot file.
+const LUIS_CONFIGURATION = 'DjBot'
+
 // user state
 const USER_PROFILE = 'user'
 
+const PLAYLIST_DIALOG = 'playlistDialog'
 const INTRO = 'get_name';
 const SONG_REQUEST = 'get_music_choices'
 const SERVE_SONGS = 'serve_songs'
 const OUTRO = 'standby_pattern'
 
-const NAME_PROMPT = 'name_prompt'
-const GENRE_PROMPT = 'genre_prompt'
-const ARTIST_PROMPT = 'artist_prompt'
 const MORE_VIDS_PROMPT = 'more_vids_prompt'
 const RESTART_PROMPT = 'restart_prompt'
 
+// Supported LUIS Intents
+const DEFINE_MUSIC_INTENT = "DefineMusic"
+const SET_NAME_INTENT = "SetName"
+const NONE_INTENT = "None"
+// Entities
+const MUSIC_ENTITIES = ["MusicGenre", "Entertainment.Person"]
 
 class DjBot {
   /**
    *
    * @param {ConversationState} conversation state object
    * @param {UserState} user state object
+   * @param {BotConfiguration} botConfig contents of the .bot fiel
    */
-  constructor(conversationState, userState) {
+  constructor(conversationState, userState, botConfig) {
+    if (!conversationState) throw new Error('Missing parameter.  conversationState is required');
+    if (!userState) throw new Error('Missing parameter.  userState is required');
+    if (!botConfig) throw new Error('Missing parameter.  botConfig is required');
+
+    // A LUIS recognizer
+    const luisConfig = botConfig.findServiceByNameOrId(LUIS_CONFIGURATION)
+    if (!luisConfig || !luisConfig.appId) throw new Error('Missing LUIS configs')
+    this.luisRecognizer = new LuisRecognizer({
+      applicationId: luisConfig.appId,
+      endpoint: luisConfig.getEndpoint(),
+      endpointKey: luisConfig.authoringKey
+
+    })
     // Creates a new state accessor property.
     // See https://aka.ms/about-bot-state-accessors to learn more about the bot state and state accessors.
     this.conversationState = conversationState;
@@ -44,26 +70,13 @@ class DjBot {
     this.dialogState = this.conversationState.createProperty(DIALOG_STATE_PROP);
     this.dialogs = new DialogSet(this.dialogState)
 
+
+
     // Add a bunch of prompts to the dialogSet
-    this.dialogs.add(new TextPrompt(NAME_PROMPT))
-    this.dialogs.add(new ChoicePrompt(GENRE_PROMPT))
-    this.dialogs.add(new TextPrompt(ARTIST_PROMPT))
     this.dialogs.add(new ChoicePrompt(MORE_VIDS_PROMPT))
     this.dialogs.add(new ChoicePrompt(RESTART_PROMPT))
-
-    // Create a dialog that Introduces bot to user
-    this.dialogs.add(new WaterfallDialog(INTRO, [
-      this.promptForName.bind(this),
-      this.confirmName.bind(this)
-    ]))
-
-    // Create a dialog that gets a music request
-    this.dialogs.add(new WaterfallDialog(SONG_REQUEST, [
-      this.promptForGenre.bind(this),
-      this.promptForArtist.bind(this),
-      this.captureArtist.bind(this)
-    ]))
-
+    // Main Dialog that gets user's info and music prefs. 
+    this.dialogs.add(new PlaylistDialog(PLAYLIST_DIALOG, this.userProfile))
     // Create a dialog that serves Youtube Vids
     this.dialogs.add(new WaterfallDialog(SERVE_SONGS, [
       this.queryBing.bind(this),
@@ -77,87 +90,7 @@ class DjBot {
     ])
   }
 
-  async promptForName(step) {
-    return await step.prompt(NAME_PROMPT, `Hello there! What's your name`)
-  }
-  async confirmName(step) {
 
-    const user = await this.userProfile.get(step.context, {})
-    if (step.result.trim() !== '') {
-      user.name = step.result.trim();
-      await this.userProfile.set(step.context, user)
-      await step.context.sendActivity(`Nice to meet you ${user.name}! My name is DJ... I'm a DJ ¥[^.^]¥`)
-
-    } else {
-      user.name = "Stranger"
-      await this.userProfile.set(step.context, user)
-      await step.context.sendActivity(`Ok... well I'll just call you ${user.name}, OK? My name is DJ... I'm a DJ ¥[^.^]¥`)
-    }
-    return await step.endDialog();
-  }
-
-  async promptForGenre(step) {
-    const user = await this.userProfile.get(step.context, {})
-    return await step.prompt(GENRE_PROMPT, `So tell me, ${user.name}, what is your favorite genre of music?`,
-      [
-        'rock',
-        'rap',
-        'country',
-        'classical',
-        'jazz',
-        'electronic',
-        'reggae',
-        'something else?'
-      ])
-  }
-  async promptForArtist(step) {
-    const user = await this.userProfile.get(step.context, {})
-    // console.log("STEP FROM ARTISTPROMPT:", step.result)
-    user.favGenre = step.result.value ? step.result.value : "etc."
-    // custom response to genre selection
-    switch (step.result.value) {
-      case 'rock':
-        await step.context.sendActivity("Yeah... Rock on!")
-        break
-      case 'rap':
-        await step.context.sendActivity("Word up. Mad props yo")
-        break
-      case 'country':
-        await step.context.sendActivity("I don't know too much country, I'm a city-slicker thru and thru")
-        break
-      case 'classical':
-        await step.context.sendActivity("You did strike me as the refined, elegant type")
-        break
-      case 'jazz':
-        await step.context.sendActivity("That's my favorite too! You must be one cool cat daddy-o")
-        break
-      case 'electronic':
-        await step.context.sendActivity("Electronic is more than just music for me...it's a way of life ;-)")
-        break
-      case 'reggae':
-        await step.context.sendActivity("Jah, man. Take life easy :-)")
-        break
-      default:
-        await step.context.sendActivity("Ah, something more esoteric, then?")
-        break
-    }
-    await this.userProfile.set(step.context, user)
-    console.log("Why would this fire twice???")
-    return await step.prompt(ARTIST_PROMPT, `So who is your favorite ${user.favGenre} artist?`)
-  }
-  async captureArtist(step) {
-    const user = await this.userProfile.get(step.context, {});
-    if (step.result.trim() !== '') {
-      user.favArtist = step.result.trim()
-      await this.userProfile.set(step.context, user)
-      await step.context.sendActivity(`${user.favArtist}, huh? Ok let me see what I have here...`)
-    } else {
-      user.favArtist = "Greatest Ever"
-      await this.userProfile.set(step.context, user)
-      await step.context.sendActivity(`Well if you won't tell me I'll just have to pick for you. Sit back and enjoy :)...`)
-    }
-    return await step.endDialog();
-  }
   async queryBing(step) {
     const user = await this.userProfile.get(step.context, {});
     let musicQ = user.musicQ
@@ -199,7 +132,7 @@ class DjBot {
     // console.log("WRAP UP STEPRESULT", step.result)
     if (step.result == "no") {
       await step.context.sendActivity("Now if you'll excuse me, I need to go spin up some turntables. If you need more music just holler")
-      return await step.endDialog();
+      // return await step.endDialog();
     } else {
       return await step.beginDialog(SERVE_SONGS)
     }
@@ -214,30 +147,77 @@ class DjBot {
 
   async onTurn(turnContext) {
     if (turnContext.activity.type === ActivityTypes.Message) { //User has messaged us
+      let dialogResult;
       // create a dialog context
       const dc = await this.dialogs.createContext(turnContext)
 
-      // I think this is necessary in case something gets paused for whatever reason
-      await dc.continueDialog();
+      const results = await this.luisRecognizer.recognize(turnContext);
+      const topIntent = LuisRecognizer.topIntent(results)
 
-      // This determines what dialog I enter, I believe
-      if (!turnContext.responded) {
-        const user = await this.userProfile.get(dc.context, {})
-        if (!user.name) await dc.beginDialog(INTRO)
-        else if (!user.favArtist) await dc.beginDialog(SONG_REQUEST)
-        else if (!user.musicQ) await dc.beginDialog(SERVE_SONGS)
-        else {
-          // console.log("were at the endgame")
-          await dc.beginDialog(OUTRO)
-        } //Why won't the OUTRO dialog start?? #confusion
+      console.log("THE TOP INTENT IS: ", topIntent)
+
+      // update user profile property with any entities captured by LUIS
+      // This could be user responding with their name or city while we are in the middle of greeting dialog,
+      // or user saying something like 'i'm {userName}' while we have no active multi-turn dialog.
+      if (topIntent === "DefineMusic") {
+        await this.updateMusicPrefs(results, turnContext);
+      } else if (topIntent === "SetName") {
+        await this.updateName(results, turnContext);
+      }
+
+      // I think this is necessary in case something gets paused for whatever reason
+      dialogResult = await dc.continueDialog();
+
+      if (!dc.context.responded) {
+        switch (dialogResult.status) {
+          case DialogTurnStatus.empty:
+            switch (topIntent) {
+              case NONE_INTENT:
+                await dc.beginDialog(PLAYLIST_DIALOG)
+                break
+              case SET_NAME_INTENT:
+                await dc.context.sendActivity("Sorry if I missed your name before...my headphones are loud!")
+                await dc.context.sendActivity(JSON.stringify(await this.userProfile.get(dc.context)))
+                break
+              case DEFINE_MUSIC_INTENT:
+                await dc.context.sendActivity("Let me see if I've got this right. You like...")
+                await dc.context.sendActivity(JSON.stringify(await this.userProfile.get(dc.context)))
+                let musicVid = await this.fetchASong(dc.context)
+                console.log(musicVid)
+                dc.context.sendActivity(`Is this what you had in mind? ${musicVid}`)
+                // if (this.userProfile.genre !== undefined && this.userProfile.artist !== undefined) {
+                //   console.log("We're gonna serve up some stuff man!!!")
+
+                // }
+                break
+              default:
+                await dc.context.sendActivity("It's loud in here.... say again?")
+                break
+            }
+            break;
+          case DialogTurnStatus.waiting:
+            break
+          case DialogTurnStatus.complete:
+            break
+          default:
+            await dc.cancelAllDialogs();
+            break;
+        }
       } else {
         // console.log("TURNCONTEXT HAS RESPONDED")
         await dc.beginDialog(OUTRO)
       }
     } else {
-      const description = "I was created by Omar to serve you music. Talk to me I talk back (but not using LUIS just yet)"
+      const description = `
+      Hey there, I'm a DJ Bot.
+      You can tell me your name like 'my name is <name>', and you can also tell me about your music tastes so I can spin up the records you love.
+      Just say 'I like punk rock music by The Pixies' or something like that, and I'll try to understand. 
+      `
       await turnContext.sendActivity(description)
     }
+
+
+
     // save changes to the user state
     await this.userState.saveChanges(turnContext)
 
@@ -246,7 +226,54 @@ class DjBot {
 
   }
 
+  /**
+  * Helper function to update user profile with entities returned by LUIS.
+  *
+  * @param {LuisResults} luisResults - LUIS recognizer results
+  * @param {DialogContext} dc - dialog context
+  */
+  async updateMusicPrefs(luisResult, context) {
+    // Do we have any entities?
+    // console.log("LUIS RESULTS ARE: ", luisResult)
+    if (Object.keys(luisResult.entities).length !== 1) {
+      // get userProfile object using the accessor
+      let userProfile = await this.userProfile.get(context);
+      if (userProfile === undefined) {
+        userProfile = new UserProfile();
+      }
+      for (let key in luisResult.entities) {
+        if (!["$instance", "personName"].includes(key)) {
+          if (key === "Entertainment_Person") { userProfile["artist"] = luisResult.entities[key][0] }
+          else { //It mentions the genre (TODO: Add name later) 
+            userProfile["genre"] = luisResult.entities[key][0]
+            userProfile["genreType"] = key
+          }
+        }
 
+      }
+      await this.userProfile.set(context, userProfile);
+      console.log("GROUND USERPROF FROM MUSICPREFS:", await this.userProfile.get(context))
+    }
+  }
+  async updateName(luisResult, context) {
+    if (Object.keys(luisResult.entities).length !== 1) {
+      let userProfile = await this.userProfile.get(context);
+
+      if (userProfile === undefined) {
+        userProfile = new UserProfile();
+      }
+      if (luisResult.entities["personName"] !== undefined) { userProfile.name = luisResult.entities["personName"][0] }
+      // console.log("NAME UPDATED", userProfile)
+      await this.userProfile.set(context, userProfile)
+      console.log("GROUNDSTATE UPROF", await this.userProfile.get(context))
+    }
+  }
+  async fetchASong(context) {
+    let userProfile = await this.userProfile.get(context);
+    let vidString = await bingSearch(userProfile.genre, userProfile.artist)
+    console.log(vidString)
+    return vidString
+  }
 }
 
 module.exports.DjBot = DjBot;
