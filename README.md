@@ -1,4 +1,15 @@
 # dj_bot
+##Update
+The three components that comprise this bot:
+1. LUIS integration: I was pleasently surprised at how easy it was to go from a very shakey model to one that is fairly robust by iteratively training on new endpoint utterances. My model has two intents {setName , setMusic} and three entities {userName, artistName, musicGenre}.
+2. Azure deployment: This ate up a _lot_ of time. Figuring out which keys go where, which tool(s) to use (VSCode vs. terminal vs. opening up a new project in Azure portal)...it was not fun. Bumped up against [this issue](https://github.com/Microsoft/botbuilder-tools/issues/596) several times and had to workaround.
+3. The Dialog Basic-Bot: Integrating LUIS makes some things easier, but there's still much room for growth when it comes to more tightly controlling the converstaion/dialog flow. Also, it is important for effectivley coupling with the LUIS service (ex. when/if to modify a UserProfile based on the likelihood of the intent). It is important for the most seamless UX. Would also be nice to integrate cards with the videos built-in. 
+
+A working (🤞) sample can be found at https://bookra.github.io/Microsoft-DJ-Bot/
+
+Questions or comments? <omar.abdelbadie1@gmail.com>, or (425) 246-2060
+
+<hr>
 
 This simple nodeJS botBuilder was built upon the Yeoman bot generator. I pulled out most of the boilerplate comments in `bot.js` so I can help myself (and demonstrate that I can ) understand the framework. 
 
