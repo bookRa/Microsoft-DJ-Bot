@@ -12,7 +12,7 @@ The three components that comprise this bot:
 
 A working (🤞) sample can be found at https://bookra.github.io/Microsoft-DJ-Bot/
 
-Questions or comments? <omar.abdelbadie1@gmail.com>, or (425) 246-2060
+Questions or comments? <omar.abdelbadie1@gmail.com>
 
 <hr>
 
@@ -37,4 +37,3 @@ I have accrued some (semi-)techical writing online to help people learn/troubles
 <hr>
 Any other questions? Feel free to reach out:
 omar.abdelbadie1@gmail.com
-(425) 246-2060
